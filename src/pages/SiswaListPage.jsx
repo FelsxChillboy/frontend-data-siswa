@@ -1,10 +1,15 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
 
 import ConfirmDeleteModal from '../components/ConfirmDeleteModal.jsx';
 import SiswaFormModal from '../components/SiswaFormModal.jsx';
 import SiswaTable from '../components/SiswaTable.jsx';
-import { deleteSiswa, getSiswa } from '../services/siswaService.js';
+import {
+  deleteSiswa,
+  getSiswa,
+  isRequestCanceled,
+} from '../services/siswaService.js';
+import { createRequestGuard } from '../utils/requestGuard.js';
 
 const emptyList = {
   items: [],
@@ -23,6 +28,8 @@ export default function SiswaListPage() {
   const [formModal, setFormModal] = useState({ open: false, initialData: null });
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [deleting, setDeleting] = useState(false);
+  const requestGuard = useRef(createRequestGuard());
+  const activeController = useRef(null);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -34,21 +41,46 @@ export default function SiswaListPage() {
   }, [searchInput]);
 
   const loadData = useCallback(async () => {
+    const token = requestGuard.current.next();
+    activeController.current?.abort();
+    const controller = new AbortController();
+    activeController.current = controller;
+
     setLoading(true);
     try {
-      const result = await getSiswa({ search, page, limit: 10 });
+      const result = await getSiswa({
+        search,
+        page,
+        limit: 10,
+        signal: controller.signal,
+      });
+      if (!requestGuard.current.isCurrent(token)) return;
       setList({
         ...emptyList,
         ...result,
         items: Array.isArray(result?.items) ? result.items : [],
       });
     } catch (error) {
+      if (isRequestCanceled(error) || !requestGuard.current.isCurrent(token)) {
+        return;
+      }
       toast.error(error.message || 'Gagal memuat data siswa');
       setList(emptyList);
     } finally {
-      setLoading(false);
+      if (requestGuard.current.isCurrent(token)) {
+        setLoading(false);
+        activeController.current = null;
+      }
     }
   }, [search, page]);
+
+  useEffect(
+    () => () => {
+      requestGuard.current.invalidate();
+      activeController.current?.abort();
+    },
+    [],
+  );
 
   useEffect(() => {
     loadData();

@@ -1,10 +1,11 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useForm } from 'react-hook-form';
 import toast from 'react-hot-toast';
 
 import { siswaSchema } from '../schemas/siswaSchema.js';
 import { createSiswa, updateSiswa } from '../services/siswaService.js';
+import { createModalKeydownHandler } from '../utils/modalA11y.js';
 
 const emptyValues = {
   kode_siswa: '',
@@ -22,12 +23,17 @@ const FieldError = ({ message }) =>
 
 export default function SiswaFormModal({ open, initialData, onClose, onSaved }) {
   const isEditing = Boolean(initialData?.kode_siswa);
+  const dialogRef = useRef(null);
   const {
     register,
     handleSubmit,
     reset,
     formState: { errors, isSubmitting },
   } = useForm({ resolver: zodResolver(siswaSchema), defaultValues: emptyValues });
+  const handleKeyDown = createModalKeydownHandler({
+    onClose,
+    disabled: isSubmitting,
+  });
 
   useEffect(() => {
     if (!open) return;
@@ -43,6 +49,14 @@ export default function SiswaFormModal({ open, initialData, onClose, onSaved }) 
         : emptyValues,
     );
   }, [open, initialData, isEditing, reset]);
+
+  useEffect(() => {
+    if (!open) return;
+    const first = dialogRef.current?.querySelector(
+      'button:not([disabled]), input:not([disabled]), textarea:not([disabled])',
+    );
+    first?.focus();
+  }, [open]);
 
   if (!open) return null;
 
@@ -69,6 +83,8 @@ export default function SiswaFormModal({ open, initialData, onClose, onSaved }) 
       }}
     >
       <div
+        ref={dialogRef}
+        onKeyDown={handleKeyDown}
         role="dialog"
         aria-modal="true"
         aria-labelledby="siswa-form-title"

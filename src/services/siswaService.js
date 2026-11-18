@@ -17,6 +17,9 @@ const ensureConfigured = () => {
 };
 
 const handleError = (error) => {
+  if (isRequestCanceled(error)) {
+    throw error;
+  }
   if (error.response) {
     const message = error.response.data?.message;
     if (typeof message === 'string' && message) {
@@ -40,11 +43,20 @@ const normalizeList = (payload) => {
   return data;
 };
 
-export const getSiswa = async ({ search = '', page = 1, limit = 10 } = {}) => {
+export const isRequestCanceled = (error) =>
+  error?.code === 'ERR_CANCELED' || error?.name === 'CanceledError';
+
+export const getSiswa = async ({
+  search = '',
+  page = 1,
+  limit = 10,
+  signal,
+} = {}) => {
   ensureConfigured();
   try {
     const response = await apiClient.get('/siswa', {
       params: { search, page, limit },
+      signal,
     });
     return normalizeList(response.data);
   } catch (error) {

@@ -52,6 +52,24 @@ test('getSiswa menolak respons dengan data null', async () => {
   await assert.rejects(() => getSiswa(), /Respons backend tidak sesuai/);
 });
 
+test('getSiswa meneruskan AbortSignal ke axios sehingga request lama bisa dibatalkan', async () => {
+  apiClient.defaults.baseURL = 'http://test.local/api';
+  const controller = new AbortController();
+  let capturedSignal;
+
+  apiClient.defaults.adapter = async (config) => {
+    capturedSignal = config.signal;
+    return stubAdapter({
+      success: true,
+      data: { items: [], total: 0, page: 1, limit: 10, totalPages: 0 },
+    })(config);
+  };
+
+  await getSiswa({ signal: controller.signal });
+
+  assert.equal(capturedSignal, controller.signal);
+});
+
 test('getSiswa memberi pesan status saat response error tanpa JSON message', async () => {
   apiClient.defaults.baseURL = 'http://test.local/api';
   apiClient.defaults.adapter = async (config) => {

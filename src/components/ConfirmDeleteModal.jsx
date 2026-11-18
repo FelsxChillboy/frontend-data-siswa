@@ -1,3 +1,7 @@
+import { useEffect, useRef } from 'react';
+
+import { createModalKeydownHandler } from '../utils/modalA11y.js';
+
 export default function ConfirmDeleteModal({
   open,
   siswa,
@@ -5,11 +9,24 @@ export default function ConfirmDeleteModal({
   onConfirm,
   onCancel,
 }) {
+  const dialogRef = useRef(null);
+  const handleKeyDown = createModalKeydownHandler({
+    onClose: onCancel,
+    disabled: loading,
+  });
+
+  useEffect(() => {
+    if (!open) return;
+    dialogRef.current?.querySelector('button:not([disabled])')?.focus();
+  }, [open]);
+
   if (!open) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-sm">
       <div
+        ref={dialogRef}
+        onKeyDown={handleKeyDown}
         role="alertdialog"
         aria-modal="true"
         aria-labelledby="confirm-delete-title"
