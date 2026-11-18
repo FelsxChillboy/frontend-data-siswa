@@ -41,3 +41,11 @@ test('schema menolak kode mengandung spasi', () => {
   const result = siswaSchema.safeParse({ ...valid, kode_siswa: 'SIS 004' });
   assert.equal(result.success, false);
 });
+
+test('schema menolak alamat lebih dari 5000 karakter', () => {
+  const result = siswaSchema.safeParse({
+    ...valid,
+    alamat_siswa: 'a'.repeat(5001),
+  });
+  assert.equal(result.success, false);
+});

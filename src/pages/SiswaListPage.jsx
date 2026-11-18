@@ -37,7 +37,11 @@ export default function SiswaListPage() {
     setLoading(true);
     try {
       const result = await getSiswa({ search, page, limit: 10 });
-      setList(result);
+      setList({
+        ...emptyList,
+        ...result,
+        items: Array.isArray(result?.items) ? result.items : [],
+      });
     } catch (error) {
       toast.error(error.message || 'Gagal memuat data siswa');
       setList(emptyList);
@@ -51,7 +55,9 @@ export default function SiswaListPage() {
   }, [loadData]);
 
   useEffect(() => {
-    if (list.totalPages > 0 && page > list.totalPages) {
+    if (list.totalPages === 0) {
+      if (page !== 1) setPage(1);
+    } else if (page > list.totalPages) {
       setPage(list.totalPages);
     }
   }, [list.totalPages, page]);
@@ -147,7 +153,8 @@ export default function SiswaListPage() {
 
           <div className="flex flex-col gap-3 border-t border-slate-100 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-xs text-slate-500">
-              Halaman {list.page} dari {Math.max(list.totalPages, 1)} •{' '}
+              Halaman {Math.min(list.page, Math.max(list.totalPages, 1))} dari{' '}
+              {Math.max(list.totalPages, 1)} •{' '}
               {list.items.length} ditampilkan
             </p>
             <div className="flex items-center gap-2">

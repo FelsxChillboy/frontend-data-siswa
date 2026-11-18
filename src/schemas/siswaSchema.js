@@ -22,7 +22,11 @@ export const siswaSchema = z.object({
       'Kode hanya boleh huruf, angka, titik, garis bawah, dan tanda hubung',
     ),
   nama_siswa: z.string().trim().min(1, 'Nama siswa wajib diisi').max(150),
-  alamat_siswa: z.string().trim().min(1, 'Alamat siswa wajib diisi'),
+  alamat_siswa: z
+    .string()
+    .trim()
+    .min(1, 'Alamat siswa wajib diisi')
+    .max(5000, 'Alamat siswa maksimal 5000 karakter'),
   tgl_lahir_siswa: tanggalSchema,
   jurusan_siswa: z.string().trim().min(1, 'Jurusan siswa wajib diisi').max(100),
 });

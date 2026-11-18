@@ -1,22 +1,28 @@
 import axios from 'axios';
 
-const baseURL = import.meta.env.VITE_API_BASE_URL;
+const baseURL = import.meta.env?.VITE_API_BASE_URL;
 
-if (!baseURL) {
-  throw new Error(
-    'VITE_API_BASE_URL belum disetel. Salin .env.example menjadi .env di folder frontend.',
-  );
-}
-
-const apiClient = axios.create({
+export const apiClient = axios.create({
   baseURL,
   timeout: 10000,
   headers: { 'Content-Type': 'application/json' },
 });
 
+const ensureConfigured = () => {
+  if (!apiClient.defaults.baseURL) {
+    throw new Error(
+      'VITE_API_BASE_URL belum disetel. Salin .env.example menjadi .env di folder frontend.',
+    );
+  }
+};
+
 const handleError = (error) => {
-  if (error.response?.data?.message) {
-    throw new Error(error.response.data.message);
+  if (error.response) {
+    const message = error.response.data?.message;
+    if (typeof message === 'string' && message) {
+      throw new Error(message);
+    }
+    throw new Error(`Backend merespons ${error.response.status}`);
   }
   if (error.request) {
     throw new Error('Tidak dapat menghubungi backend. Pastikan server berjalan.');
@@ -24,18 +30,30 @@ const handleError = (error) => {
   throw error;
 };
 
+const normalizeList = (payload) => {
+  const data = payload?.data;
+
+  if (!data || !Array.isArray(data.items)) {
+    throw new Error('Respons backend tidak sesuai');
+  }
+
+  return data;
+};
+
 export const getSiswa = async ({ search = '', page = 1, limit = 10 } = {}) => {
+  ensureConfigured();
   try {
     const response = await apiClient.get('/siswa', {
       params: { search, page, limit },
     });
-    return response.data.data;
+    return normalizeList(response.data);
   } catch (error) {
     handleError(error);
   }
 };
 
 export const getSiswaByKode = async (kode) => {
+  ensureConfigured();
   try {
     const response = await apiClient.get(`/siswa/${encodeURIComponent(kode)}`);
     return response.data.data;
@@ -45,6 +63,7 @@ export const getSiswaByKode = async (kode) => {
 };
 
 export const createSiswa = async (payload) => {
+  ensureConfigured();
   try {
     const response = await apiClient.post('/siswa', payload);
     return response.data.data;
@@ -54,6 +73,7 @@ export const createSiswa = async (payload) => {
 };
 
 export const updateSiswa = async (kode, payload) => {
+  ensureConfigured();
   try {
     const response = await apiClient.put(
       `/siswa/${encodeURIComponent(kode)}`,
@@ -66,6 +86,7 @@ export const updateSiswa = async (kode, payload) => {
 };
 
 export const deleteSiswa = async (kode) => {
+  ensureConfigured();
   try {
     const response = await apiClient.delete(`/siswa/${encodeURIComponent(kode)}`);
     return response.data.data;
